@@ -11,8 +11,9 @@ public class GetChunk {
     private Body body;
     private String CRLF  = "\n\r";
 
-    public GetChunk(String message_type, String version, int sender_id, String file_id, int chunk_no, int rep_degree){
+    public GetChunk(String message_type, String version, int sender_id, String file_id, int chunk_no, int rep_degree, byte[] _body){
         header = new Header(message_type, version, sender_id, file_id, chunk_no, rep_degree);
+        body = new Body(_body);
     }
 
     @Override

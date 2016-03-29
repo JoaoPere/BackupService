@@ -31,7 +31,6 @@ public class ChunkBackup extends Thread {
     Path path;
 
     int rep_degree;
-    int chunk_no;
     Peer peer;
 
     int num_tries = 0;
@@ -69,8 +68,23 @@ public class ChunkBackup extends Thread {
             times =+ 1;
         }
 
-        while(num_tries < 5 && current_replication < rep_degree) {
-            PutChunk put_chunk = new PutChunk("PUTCHUNK",peer.getVersion(),peer.getId(),fileId,chunk_no,rep_degree);
+        while(num_tries < 5 && chunkNo < times) {
+            data = null;
+
+            if((chunkNo+1) == times) {
+                int lastsize = total.length - 64000*chunkNo;
+                data = splitFile(path, chunkNo, lastsize);
+            }
+
+            data = splitFile(path, chunkNo, 64000);
+
+            try {
+                Thread.sleep(time);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            PutChunk put_chunk = new PutChunk("PUTCHUNK",peer.getVersion(),peer.getId(),fileId,chunkNo,rep_degree,data);
 
             byte[] buf;
             buf = put_chunk.toString().getBytes();
@@ -79,6 +93,13 @@ public class ChunkBackup extends Thread {
             try {
                 num_tries++;
                 backup_channel.getMcSocket().send(packet_sent);
+
+                try {
+                    Thread.sleep(time);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
                 control_channel.getMcSocket().setSoTimeout(time);
 
                 while(true) {
@@ -86,7 +107,9 @@ public class ChunkBackup extends Thread {
                 }
 
             } catch (SocketTimeoutException e) {
+                count++;
                 time *= 2;
+                e.printStackTrace();
             } catch (SocketException e) {
                 e.printStackTrace();
             } catch (IOException e) {
@@ -95,17 +118,26 @@ public class ChunkBackup extends Thread {
         }
     }
 
+    public static byte[] splitFile(Path path, int chunkNo, int size){
+        byte fileContent[] = null;
+
+        try {
+            fileContent = Files.readAllBytes(path);
+            } catch (IOException e) {
+        }
+
+        byte chunk[] = Arrays.copyOfRange(fileContent, 64000*chunkNo, (64000*chunkNo)+size);
+
+        return chunk;
+
+    }
+
     public void receive() {
         packet_parsed_received = control_channel.receive();
 
         if (packet_parsed_received != null) {
             String[] parsed = parse(packet_parsed_received);
 
-            if(parsed[0].equals("STORED")){
-                if(Integer.parseInt(parsed[4]) == chunk_no){
-
-                }
-            }
         }
     }
 

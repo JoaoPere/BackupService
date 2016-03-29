@@ -6,7 +6,7 @@ package message;
 public class Body {
     byte[] body;
 
-    Body(byte[] body) {
+    public Body(byte[] body) {
         this.body = body;
     }
 
